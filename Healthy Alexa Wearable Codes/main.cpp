@@ -1,9 +1,15 @@
+//The compiled code with all characteristics and sensors
+
 #include "mbed.h"
+//For Gyro
+#include "FXAS21002.h"
 //For Accelerometer
 #include "FXOS8700.h"
 //For Thermometer
 //#include "MPL3115A2.h"
-#include "htu21d.h"
+#include "HTU21D.h"
+//For Heart Rate
+#include "MAX30101.h"
 //For BLE
 #include "Hexi_KW40Z.h"
 //For OLED
@@ -11,25 +17,26 @@
 #include "OLED_types.h"
 #include "OpenSans_Font.h"
 #include "string.h"
+#include "images.h"
 
 
 //Define Characteristics
 #define LED_ON      0
 #define LED_OFF     1
-#define MPL3115A2_I2C_ADDRESS (0x60<<1)
 
 void UpdateSensorData(void);
 void StartHaptic(void);
 void StopHaptic(void const *n);
 void txTask(void);
 
-DigitalOut redLed(LED1,1);
-DigitalOut greenLed(LED2,1);
+//DigitalOut redLed(LED1,1);
+//DigitalOut greenLed(LED2,1);
 DigitalOut blueLed(LED3,1);
 DigitalOut haptic(PTB9);
 
 /* Define timer for haptic feedback */
 RtosTimer hapticTimer(StopHaptic, osTimerOnce);
+
 
 
 //HH
@@ -40,14 +47,14 @@ Serial pc(USBTX, USBRX);
 FXOS8700 accel(PTC11, PTC10);
 
 // Pin connections for thermometer
-//MPL3115A2 MPL3115A2( PTC11, PTC10, MPL3115A2_I2C_ADDRESS);
-/* pos [0] = altimeter or pressure value */
-/* pos [1] = temperature value */
-htu21d temphumid(PTB1,PTB0); // HTU21D Sensor
+HTU21D temphumid(PTB1,PTB0); // HTU21D Sensor
 DigitalOut powerEN (PTB12); // Power Enable HTU21D Sensor
 
+// Pin connections for heart rate 
+MAX30101 heart(PTB1, PTB0);
+
 // Pin connections for Gyroscope
-//FXAS21002 gyro(PTC11,PTC10); //Note HH: same pin fix
+FXAS21002 gyro(PTC11,PTC10); //Note HH: same pin fix
 
 /* Instantiate the Hexi KW40Z Driver (UART TX, UART RX) */ 
 KW40Z kw40z_device(PTE24, PTE25);
@@ -102,6 +109,7 @@ void PassKey(void)
     /* Display Bond Pass Key in a 95px by 18px textbox at x=0,y=40 */
     sprintf(text,"%d", kw40z_device.GetPassKey());
     oled.TextBox((uint8_t *)text,0,40,95,18);
+    pc.printf("pass key\n");
 }
 
 /***********************End of Call Back Functions*****************************/
@@ -110,25 +118,29 @@ void PassKey(void)
 
 int main()
 {    
+    powerEN = 0;
     /* Register callbacks to application functions */
     kw40z_device.attach_buttonLeft(&ButtonLeft);
     kw40z_device.attach_buttonRight(&ButtonRight);
     kw40z_device.attach_passkey(&PassKey);
 
-    // Configure Accelerometer FXOS8700
-    accel.accel_config();
+
+     pc.printf("keys passed\n");
+    // CStart Heart Rate Measurement
+    heart.enable();
     
-    // Set over sampling value for temp sensor(see MPL3115A2.h for details)
-    //MPL3115A2.Oversample_Ratio(OVERSAMPLE_RATIO_64);
+    // Configure Accelerometer FXOS8700
+    //accel.accel_config();
     
     // Configure Gyroscope FXAS21002    
-    //gyro.gyro_config();
+    gyro.gyro_config();
     
     /* Setting pointer location of the 96 by 96 pixel bitmap */
     //image1  = Gyro;
     
+    
     /* Turn on the backlight of the OLED Display */
-    oled.DimScreenON();
+    //oled.DimScreenON();
     
     /* Fills the screen with solid black */         
     oled.FillScreen(COLOR_BLACK);
@@ -158,11 +170,15 @@ int main()
     uint8_t currLinkState = 0;
      
     txThread.start(txTask); /*Start transmitting Sensor Tag Data */
+    pc.printf("tx task is happenning\n");
+    image1  = TempHumid;
     
-    //image1  = TempHumid;
+    /* Fill 96px by 96px Screen with 96px by 96px NXP Image starting at x=0,y=0 */
+    oled.DrawImage(image1,0,0); 
     
     while (true) 
     {
+        pc.printf("Bolean for led: %d\n", kw40z_device.GetAdvertisementMode());
         blueLed = !kw40z_device.GetAdvertisementMode(); /*Indicate BLE Advertisment Mode*/   
         Thread::wait(50);
     }
@@ -187,13 +203,20 @@ void txTask(void){
         
         /*Send Humidity*/
         kw40z_device.SendHumidity(humidity);
+        pc.printf("H: %d\n", humidity); 
         
         /*Send Temperature*/
         kw40z_device.SendTemperature(temperature);
+        pc.printf("T: %d \n", temperature); 
         
         /*Send Mag,Accel,Gyro Data. */
         kw40z_device.SendGyro(gx,gy,gz);
-        kw40z_device.SendAccel(x,y,z);
+        pc.printf("gx: %f, gy: %f, gz: %f\n", gx, gy, gz); 
+        
+        //kw40z_device.SendAccel(x,y,z);
+        //pc.printf("ax: %f, ay: %f, az: %f\n", x, y, z); 
+        
+        //pc.printf("Heartrate %f\r\n", heart.getTemp());
 
         Thread::wait(1000);                 
     }
@@ -202,24 +225,22 @@ void txTask(void){
 void UpdateSensorData(void)
 {    
     //Accelerometer Data aquisition
-    accel.acquire_accel_data_g(accel_data);
+    //accel.acquire_accel_data_g(accel_data);
     //accel_rms = sqrt(((accel_data[0]*accel_data[0])+(accel_data[1]*accel_data[1])+(accel_data[2]*accel_data[2]))/3);
-    x = accel_data[0];
-    y = accel_data[1];
-    z = accel_data[2];
+    //x = accel_data[0];
+    //y = accel_data[1];
+    //z = accel_data[2];
     
     ////Gyro Data aquisition
-    //gyro.acquire_gyro_data_dps(gyro_data);
-    ////gyro_rms = sqrt(((gyro_data[0]*gyro_data[0])+(gyro_data[1]*gyro_data[1])+(gyro_data[2]*gyro_data[2]))/3);
-    //gx = gyro_data[0];
-    //gy = gyro_data[1];
-    //gz = gyro_data[2];  
+    gyro.acquire_gyro_data_dps(gyro_data);
+    //gyro_rms = sqrt(((gyro_data[0]*gyro_data[0])+(gyro_data[1]*gyro_data[1])+(gyro_data[2]*gyro_data[2]))/3);
+    gx = gyro_data[0];
+    gy = gyro_data[1];
+    gz = gyro_data[2];  
     
-    //Temperature & Humidity Data aquisition
-      //MPL3115A2.getAllData(&sensor_data[0]);
-      //temperature = sensor_data[1]    
-    temperature = temphumid.getTemp();//C
-    humidity = temphumid.getHum();
+    //Temperature & Humidity Data aquisition  
+    temperature = temphumid.sample_ctemp();//C
+    humidity = temphumid.sample_humid();;
     
 
 }
