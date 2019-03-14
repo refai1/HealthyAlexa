@@ -21,7 +21,7 @@ import java.util.UUID;
 
 /**
  * Service for managing connection and data communication with a GATT server hosted on a
- * given Bluetooth LE device.
+ * given BLE device.
  */
 public class BLEService extends Service {
 
@@ -49,7 +49,7 @@ public class BLEService extends Service {
                 "com.example.bluetooth.le.EXTRA_DATA";
 
         public final static UUID UUID_HEART_RATE_MEASUREMENT =
-                UUID.fromString(Main2Activity.HMSoftChar);
+                UUID.fromString(MainActivity.HMSoftChar);
 
         // Implements callback methods for GATT events that the app cares about.  For example,
         // connection change and services discovered.

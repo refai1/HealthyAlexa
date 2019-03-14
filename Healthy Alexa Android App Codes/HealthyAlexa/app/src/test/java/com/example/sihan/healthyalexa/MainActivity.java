@@ -31,6 +31,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import org.junit.Test;
+import org.junit.experimental.theories.DataPoint;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -48,7 +49,7 @@ import static org.junit.Assert.*;
  *
  * @see <a href="http://d.android.com/tools/testing">Testing documentation</a>
  */
-public class ExampleUnitTest {
+public class MainActivity {
     private final Boolean DEBUG_MODE = false;
 
     View view;
@@ -88,7 +89,7 @@ public class ExampleUnitTest {
     public  static String HMSoftChar = "0000ffe1-0000-1000-8000-00805f9b34fb";
 
     //Needed after HMSoft is connected
-    private BluetoothLeService mBluetoothLeService;
+    private BLEService mBluetoothLeService;
     private ArrayList<ArrayList<BluetoothGattCharacteristic>> mGattCharacteristics =
             new ArrayList<ArrayList<BluetoothGattCharacteristic>>();
     private boolean mConnected = false;
@@ -107,7 +108,7 @@ public class ExampleUnitTest {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main2);
+        setContentView(R.layout.activity_main);
 
         deviceList = new ArrayList<>();
         count = 0;
