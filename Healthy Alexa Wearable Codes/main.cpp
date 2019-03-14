@@ -101,6 +101,11 @@ uint32_t count = 0;
 uint32_t num;
 uint8_t testsignal = 60;
 /****************************Call Back Functions*******************************/
+void StartHaptic(void)  {
+    hapticTimer.start(50);
+    haptic = 1;
+}
+
 void ButtonRight(void)
 {
     StartHaptic();
@@ -111,11 +116,6 @@ void ButtonLeft(void)
 {
     StartHaptic();
     kw40z_device.ToggleAdvertisementMode();
-}
-
-void StartHaptic(void)  {
-    hapticTimer.start(50);
-    haptic = 1;
 }
 
 void StopHaptic(void const *n) {
@@ -297,6 +297,13 @@ int main()
     pwr1v8 = 1;
     pwr3v3b = 1;
     pwr15v = 0;
+    
+    maximInterrupt.fall(interruptHandler);
+    maximInterrupt.enable_irq();
+    
+    MAX30101::InterruptBitField_u interruptStatus;
+    interruptStatus.all = 0xFF;
+    hr.enableInterrupts(interruptStatus);
 
 
      pc.printf("keys passed\n");
@@ -313,13 +320,6 @@ int main()
     
     /* Setting pointer location of the 96 by 96 pixel bitmap */
     //image1  = Gyro;
-    
-    maximInterrupt.fall(interruptHandler);
-    maximInterrupt.enable_irq();
-    
-    MAX30101::InterruptBitField_u interruptStatus;
-    interruptStatus.all = 0xFF;
-    hr.enableInterrupts(interruptStatus);
     
     /* Turn on the backlight of the OLED Display */
     //oled.DimScreenON();
@@ -383,7 +383,7 @@ int main()
             //oled.TextBox((uint8_t *)text,55,55,35,15);
         }
              
-        wait(1000);
+        Thread::wait(1000);
     }    
     //return 0;
 }
