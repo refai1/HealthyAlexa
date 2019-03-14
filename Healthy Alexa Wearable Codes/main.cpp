@@ -250,7 +250,7 @@ void interruptHandlerQueued() {
             num = *(uint32_t *) sample;
             if (num < 310000){
                 realHeartRate = 0;
-                //printf("keep closer to your hand \r\n");
+                printf("keep closer to your hand \r\n");
                 pc.printf("keep closer to your hand \r\n");
             }
             else {
@@ -258,7 +258,7 @@ void interruptHandlerQueued() {
                 //realHeartRate = 65;
                 realHeartRate = (num - 310000)/100;
                 if (realHeartRate >45){
-                    //printf("%d\r\n", realHeartRate);
+                    printf("%d\r\n", realHeartRate);
                     pc.printf("%d\r\n", realHeartRate);
                 }
             }
@@ -362,21 +362,21 @@ int main()
         pc.printf("Heartrate: %d\n",realHeartRate); 
         
         /* Display time reading in 35px by 15px textbox at(x=55, y=40) */
-       // oled.TextBox((uint8_t *)text,55,15,35,15); //Increase textbox for more digits
+        //oled.TextBox((uint8_t *)text,55,15,35,15); //Increase textbox for more digits
         if (realHeartRate > 45){
             calorie = (-55.1 + (0.6309*realHeartRate)+(0.1988*75)+(0.2017*25))*60/4.184 ;
             //sprintf(text,"%0.2f",calorie);
              pc.printf("calorie: %0.2f\n",calorie); 
             
             /* Display time reading in 35px by 15px textbox at(x=55, y=40) */
-           // oled.TextBox((uint8_t *)text,55,55,35,15); //Increase textbox for more digits
+            //oled.TextBox((uint8_t *)text,55,55,35,15); //Increase textbox for more digits
         }
         else{
-            //sprintf(text,"wait HR");
+            sprintf(text,"wait HR");
             pc.printf("wait HR\n"); 
             
             /* Display time reading in 35px by 15px textbox at(x=55, y=40) */
-           // oled.TextBox((uint8_t *)text,55,55,35,15);
+            //oled.TextBox((uint8_t *)text,55,55,35,15);
         }
              
         wait(1000);
