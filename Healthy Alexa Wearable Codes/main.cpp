@@ -40,13 +40,14 @@ Serial pc(USBTX, USBRX);
 // Pin connections for accelerometer 
 FXOS8700 accel(PTC11, PTC10);
 
+// Pin connections for Gyroscope
+FXAS21002 gyro(PTC11,PTC10); 
+
+
 // Pin connections for thermometer
 HTU21D temphumid(PTB1,PTB0); // HTU21D Sensor
 DigitalOut powerEN (PTB12); // Power Enable HTU21D Sensor
 
-
-// Pin connections for Gyroscope
-FXAS21002 gyro(PTC11,PTC10); //Note HH: same pin fix
 
 /* Instantiate the SSD1351 OLED Driver */ 
 SSD1351 oled(PTB22,PTB21,PTC13,PTB20,PTE6, PTD15); /* (MOSI,SCLK,POWER,CS,RST,DC) */
@@ -77,6 +78,10 @@ uint16_t y = 0;
 uint16_t z = 0;
 //for temp
 float sensor_data[2];
+
+//for accelerometer
+float accel_data[3]; 
+float accel_rms=0.0;
 //for gyro
 float gyro_data[3];  // Storage for the data from the sensor
 float gyro_rms=0.0; // RMS value from the sensor
@@ -85,11 +90,6 @@ const uint8_t *image1; // Pointer for the image1 to be displayed
 char text1[20]; // Text Buffer for dynamic value displayed
 char text2[20]; // Text Buffer for dynamic value displayed
 char text3[20]; // Text Buffer for dynamic value displayed
-//for accelerometer
-float accel_data[3]; 
-float accel_rms=0.0;
-
-
 
 //Heartrate
 /*Create a Thread to handle sending BLE Sensor Data */ 
@@ -139,19 +139,20 @@ void txTask(void){
         /*The following is sending sensor data over BLE*/
         
         /*Send Humidity*/
-        kw40z_device.SendHumidity(humidity);
         pc.printf("H: %d\n", humidity); 
         
         /*Send Temperature*/
-        kw40z_device.SendTemperature(temperature);
         pc.printf("T: %d \n", temperature); 
         
         /*Send Mag,Accel,Gyro Data. */
-        kw40z_device.SendGyro(gx,gy,gz);
-        pc.printf("gx: %f, gy: %f, gz: %f\n", gx, gy, gz); 
+        pc.printf("ax: %f, ay: %f, az: %f\n", accel_data[0], accel_data[1], accel_data[2]);         
+        pc.printf("gx: %f, gy: %f, gz: %f\n", gyro_data[0], gyro_data[1], gyro_data[2]); 
         
+        kw40z_device.SendHumidity(humidity);
+        kw40z_device.SendTemperature(temperature);
         kw40z_device.SendAccel(x,y,z);
-        pc.printf("ax: %f, ay: %f, az: %f\n", x, y, z); 
+        kw40z_device.SendGyro(gx,gy,gz);
+        
 
         Thread::wait(1000);                 
     }
@@ -163,16 +164,17 @@ void UpdateSensorData(void)
     //Accelerometer Data aquisition
     accel.acquire_accel_data_g(accel_data);
     //accel_rms = sqrt(((accel_data[0]*accel_data[0])+(accel_data[1]*accel_data[1])+(accel_data[2]*accel_data[2]))/3);
-    x = accel_data[0];
-    y = accel_data[1];
-    z = accel_data[2];
+    //x = accel_data[0];
+    //y = accel_data[1];
+    //z = accel_data[2];
     
+    wait(0.005);
     ////Gyro Data aquisition
     gyro.acquire_gyro_data_dps(gyro_data);
     //gyro_rms = sqrt(((gyro_data[0]*gyro_data[0])+(gyro_data[1]*gyro_data[1])+(gyro_data[2]*gyro_data[2]))/3);
-    gx = gyro_data[0];
-    gy = gyro_data[1];
-    gz = gyro_data[2];  
+    //gx = gyro_data[0];
+    //gy = gyro_data[1];
+    //gz = gyro_data[2];  
     
     //Temperature & Humidity Data aquisition  
     temperature = temphumid.sample_ctemp();//C
@@ -303,6 +305,8 @@ int main()
     
     // Configure Accelerometer FXOS8700
     accel.accel_config();
+    
+    wait(0.005);
     
     // Configure Gyroscope FXAS21002    
     gyro.gyro_config();
