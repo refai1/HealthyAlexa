@@ -30,6 +30,10 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.jjoe64.graphview.GraphView;
+import com.jjoe64.graphview.Viewport;
+import com.jjoe64.graphview.series.LineGraphSeries;
+
 import org.junit.Test;
 import org.junit.experimental.theories.DataPoint;
 
@@ -81,59 +85,24 @@ public class MainActivity {
     private static final int REQUEST_ENABLE_BT = 1;
     // Stops scanning after 10 seconds.
     private static final long SCAN_PERIOD = 10000;
-    private static final String TAG = "Main2Activity";
+    private static final String TAG = "MainActivity";
 
     //Information about board
-    public static  String HMSoftAddress = "F0:45:DA:FC:45:2B";
-    public static String HMSoftServ = "0000ffe0-0000-1000-8000-00805f9b34fb";
-    public  static String HMSoftChar = "0000ffe1-0000-1000-8000-00805f9b34fb";
+    public static  String HexiAddress = "00:18:40:0A:00:48";
+    public static String HexiServ = "00002a26-0000-1000-8000-00805f9b34fb";
+    public  static String HexiChar = "00002a26-0000-1000-8000-00805f9b34fb";
 
-    //Needed after HMSoft is connected
+    //Needed after Hexiwear is connected
     private BLEService mBluetoothLeService;
     private ArrayList<ArrayList<BluetoothGattCharacteristic>> mGattCharacteristics =
             new ArrayList<ArrayList<BluetoothGattCharacteristic>>();
     private boolean mConnected = false;
     private BluetoothGattCharacteristic mNotifyCharacteristic;
-    private BluetoothGattCharacteristic bluetoothGattCharacteristicHM_SOFT;
+    private BluetoothGattCharacteristic bluetoothGattCharacteristicHexi;
 
     private final String LIST_NAME = "NAME";
     private final String LIST_UUID = "UUID";
 
-    //GraphView variables
-    private LineGraphSeries<DataPoint> series;
-    private double lastX = 0;
-    private  GraphView graph;
-    private Boolean updateViewportRecent;
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-
-        deviceList = new ArrayList<>();
-        count = 0;
-
-        readyTo = false; //Track once it's connected
-        foundChar = false;
-        mShouldUnbind = false;
-        updateViewportRecent = true;
-
-        view = this.getWindow().getDecorView();
-        view.setBackgroundResource(R.color.Blue);
-
-        showValue = (TextView) findViewById(R.id.valueCounter);
-        showData = (TextView) findViewById(R.id.data);
-
-        //Bluetooth stuff
-        getSupportActionBar().setTitle(R.string.title_devices);
-        mHandler = new Handler();
-
-        // Use this check to determine whether BLE is supported on the device.  Then you can
-        // selectively disable BLE-related features.
-        if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
-            Toast.makeText(this, R.string.ble_not_supported, Toast.LENGTH_SHORT).show();
-            finish();
-        }
 
         // Initializes a Bluetooth adapter.  For API level 18 and above, get a reference to
         // BluetoothAdapter through BluetoothManager.
@@ -151,35 +120,8 @@ public class MainActivity {
         //Check permissions
         checkBTAndWritePermissions();
 
-        //Setting up the Graph View
-        // we get graph view instance
-        graph = (GraphView) findViewById(R.id.graph);
-        //Setup how the graph looks
-        series = new LineGraphSeries<DataPoint>();
-        series.setColor(Color.WHITE);
-        graph.addSeries(series);
-        graph.getGridLabelRenderer().setHorizontalAxisTitle("Time (s)");
-        graph.getGridLabelRenderer().setVerticalAxisTitle("Current (mA)");
-        graph.getGridLabelRenderer().setLabelHorizontalHeight(20);
-        graph.getGridLabelRenderer().setLabelVerticalWidth(30);
-        graph.getGridLabelRenderer().setLabelsSpace(3);
-        graph.getGridLabelRenderer().setNumVerticalLabels(4);
-        graph.getViewport().setScrollable(true);
 
-        Viewport viewport = graph.getViewport();
-        viewport.setYAxisBoundsManual(true);
-        viewport.setMinY(.01);
-        viewport.setMaxY(1.5);
-        viewport.setXAxisBoundsManual(true);
-        viewport.setMaxX(10);
-        viewport.setMinX(0);
-
-        startedGraphing = false;
-
-        //Setup the writing stream
-        outputStream = null;
-
-        //Read the hmsoft address files files
+        //Read the hexiwear address files files
         /*
          * Example Formatted:
          * Address = F0:C7:7F:94:CF:97
@@ -187,7 +129,7 @@ public class MainActivity {
          * Characteristic UUID = 0000ffe1-0000-1000-8000-00805f9b34fb
          */
         if(isExternalStorageWritable()){
-            File dir =  new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/HMSOFTOUT/SETTINGS");
+            File dir =  new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/HEXIWEARhhAPP/SETTINGS");
             if(!dir.exists()) //Create the directory if it does not exist
                 dir.mkdir();
             File settings = new File(dir,"settings.txt");
@@ -205,7 +147,7 @@ public class MainActivity {
                     Log.i(TAG,"Failed to create output stream");
                     e.printStackTrace();
                 }
-                String sampleT = "Address=" + HMSoftAddress + "\nService UUID=" + HMSoftServ + "\nCharacteristic UUID=" + HMSoftChar + "\n";
+                String sampleT = "Address=" + HexiAddress + "\nService UUID=" + HexiServ + "\nCharacteristic UUID=" + HexiChar + "\n";
                 try {
                     os.write(sampleT.getBytes());
                 }catch (IOException e) {
@@ -237,12 +179,12 @@ public class MainActivity {
                         recordFlag = false;
                         switch (curSet){
                             case 1:
-                                HMSoftAddress = stringContent;
+                                HexiAddress = stringContent;
                                 break;
                             case 2:
-                                HMSoftServ = stringContent;
+                                HexiServ = stringContent;
                             case 3:
-                                HMSoftChar = stringContent;
+                                HexiChar = stringContent;
                         }
                         stringContent = "";
                     }
@@ -257,7 +199,7 @@ public class MainActivity {
                 e.printStackTrace();
             }
         }
-        Log.i(TAG, "HMSoftAddress: " + HMSoftAddress + "\nService: " + HMSoftServ + "\nChar: " + HMSoftChar + "\n");
+        Log.i(TAG, "HexiAddress: " + HexiAddress + "\nService: " + HexiServ + "\nChar: " + HexiChar + "\n");
 
         //Create file to write on and starts writing
         if(isExternalStorageWritable()) {
@@ -278,15 +220,6 @@ public class MainActivity {
             }
         }
 
-        //Set listener when x Axis is changed when scrolled
-        graph.getViewport().setOnXAxisBoundsChangedListener(new OnXAxisBoundsChangedListener() {
-            @Override
-            public void onXAxisBoundsChanged(double minX, double maxX, Reason reason) {
-                Log.i(TAG,"Graph has scrolled!" + minX + " ,max: " + maxX + "\nSeriesListmax: "
-                        + series.getHighestValueX());
-                //If user scrolls to end == update every new incoming value (TODO: make it user responsive)
-                updateViewportRecent = (maxX == series.getHighestValueX());
-            }
         });
     }
     @Override
@@ -345,7 +278,7 @@ public class MainActivity {
 
                     // permission denied, boo! Disable the
                     // functionality that depends on this permission.
-                    Toast.makeText(Main2Activity.this, "Permission denied to read your External storage or Location", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this, "Permission denied to read your External storage or Location", Toast.LENGTH_SHORT).show();
                 }
                 return;
             }
@@ -375,13 +308,13 @@ public class MainActivity {
             //checkIfCharacteristic(BluetoothApp.getApplication().getService().getSupportedGattServices());
             //If restarted, bypass scanning
             if (BluetoothApp.getApplication().getService() != null && mBluetoothLeService == null) {
-                bluetoothGattCharacteristicHM_SOFT = BluetoothApp.getApplication().getGattCharacteristic();
+                bluetoothGattCharacteristicHexi = BluetoothApp.getApplication().getGattCharacteristic();
                 mBluetoothLeService = BluetoothApp.getApplication().getService();
                 Log.i(TAG, "mBluetoothLeService has been set, null?: " + (mBluetoothLeService == null));
             }
             registerReceiver(mGattUpdateReceiver, makeGattUpdateIntentFilter());
             if (mBluetoothLeService != null) {
-                final boolean result = mBluetoothLeService.connect(HMSoftAddress);
+                final boolean result = mBluetoothLeService.connect(HexiAddress);
                 Log.d(TAG, "Connect request result=" + result);
             }
         }
@@ -393,10 +326,10 @@ public class MainActivity {
         String dateTime = "[" + BluetoothApp.getDateString() + " " + BluetoothApp.getTimeString() + "]";
         //Toast.makeText(this,"Clicked!",Toast.LENGTH_LONG).show();
         File Root = Environment.getExternalStorageDirectory();
-        File dir = new File(Root.getAbsolutePath() + "/HMSOFTOUT");
+        File dir = new File(Root.getAbsolutePath() + "/HEXIWEARhhAPP");
         if(!dir.exists())
             dir.mkdir();
-        recentTitle = "ITP" + dateTime + ".txt";
+        recentTitle = "Data" + dateTime + ".txt";
         File file = new File(dir,recentTitle);
         recentTitle = dir + "/" + recentTitle;
         try {
@@ -438,7 +371,7 @@ public class MainActivity {
                     //Start scanning again,
                     count++;
                     if(count < 3) {
-                        Log.i(TAG,"Did not find HMSoft device, searching again");
+                        Log.i(TAG,"Did not find Hexiwear device, searching again");
                         scanLeDevice(true);
                     }
                 }
@@ -458,8 +391,8 @@ public class MainActivity {
         if(device.getAddress()!=null&& ! deviceList.contains(device.getAddress())) {
             Log.i(TAG, "Found Device: " + device.getName() + "\n" + device.getAddress());
             deviceList.add(device.getAddress());
-            if(device.getAddress().equals(HMSoftAddress)){
-                Log.i(TAG,"Found HMSoft!");
+            if(device.getAddress().equals(HexiAddress)){
+                Log.i(TAG,"Found Hexi!");
                 count = 3;
                 if (mScanning) {
                     mBluetoothAdapter.stopLeScan(mLeScanCallback);
@@ -493,17 +426,17 @@ public class MainActivity {
 
         @Override
         public void onServiceConnected(ComponentName componentName, IBinder service) {
-            mBluetoothLeService = ((BluetoothLeService.LocalBinder) service).getService();
+            mBluetoothLeService = ((BLEService.LocalBinder) service).getService();
             mShouldUnbind = true;
             if (!mBluetoothLeService.initialize()) {
                 Log.e(TAG, "Unable to initialize Bluetooth");
                 finish();
             }
             // Automatically connects to the device upon successful start-up initialization.
-            mBluetoothLeService.connect(HMSoftAddress);
+            mBluetoothLeService.connect(HexiAddress);
             //Used so it can later be accessed in another activity
             BluetoothApp.getApplication().setBluetoothLe(mBluetoothLeService);
-            Log.i(TAG,"Connected to hmSoft!");
+            Log.i(TAG,"Connected to hexiwear!");
         }
 
         @Override
@@ -625,7 +558,7 @@ public class MainActivity {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 //Rename file
-                String dir = Environment.getExternalStorageDirectory().getAbsolutePath() + "/HMSOFTOUT";
+                String dir = Environment.getExternalStorageDirectory().getAbsolutePath() + "/HEXIWEARhhAPP";
                 File originFile = new File(recentTitle);
                 File renamedFile = new File(dir,"Inter11.txt");
                 originFile.renameTo(renamedFile);
@@ -651,7 +584,7 @@ public class MainActivity {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 //Rename file
-                String dir = Environment.getExternalStorageDirectory().getAbsolutePath() + "/HMSOFTOUT";
+                String dir = Environment.getExternalStorageDirectory().getAbsolutePath() + "/HEXIWEARhhAPP";
                 File originFile = new File(recentTitle);
                 String name = textInput.getText().toString();
                 File renamedFile = new File(dir,name + ".txt");
@@ -700,10 +633,10 @@ public class MainActivity {
         @Override
         public void onReceive(Context context, Intent intent) {
             final String action = intent.getAction();
-            if (BluetoothLeService.ACTION_GATT_CONNECTED.equals(action)) {
+            if (BLEService.ACTION_GATT_CONNECTED.equals(action)) {
                 mConnected = true;
-                Log.i(TAG,"Connected to HMSOFT!");
-                Toast.makeText(getApplicationContext(),"Connected to HMSoft!",Toast.LENGTH_SHORT).show();
+                Log.i(TAG,"Connected to Hexiwear!");
+                Toast.makeText(getApplicationContext(),"Connected to Hexiwear!",Toast.LENGTH_SHORT).show();
                 invalidateOptionsMenu();
             } else if (BluetoothLeService.ACTION_GATT_DISCONNECTED.equals(action)) {
                 mConnected = false;
@@ -782,19 +715,19 @@ public class MainActivity {
             return;
         Log.i(TAG,"Checking characteristics...");
         String tempUUID;
-        UUID UUID_HM_SOFT = UUID.fromString(HMSoftChar);
+        UUID UUID_HM_SOFT = UUID.fromString(HexiChar);
         //Loop through services
         for(BluetoothGattService gattService : gattServices){
             tempUUID = gattService.getUuid().toString();
             Log.i(TAG,"Service: " + tempUUID);
-            if(tempUUID.equals(HMSoftServ)){
+            if(tempUUID.equals(HexiServ)){
                 List<BluetoothGattCharacteristic> gattCharacteristics =
                         gattService.getCharacteristics();
                 //Loop through characteristics
                 for(BluetoothGattCharacteristic gattCharacteristic : gattCharacteristics){
                     tempUUID = gattCharacteristic.getUuid().toString();
                     Log.i(TAG,"Characteristic: " + tempUUID);
-                    if(tempUUID.equals(HMSoftChar)){
+                    if(tempUUID.equals(HexiChar)){
                         Log.i(TAG,"Found Characteristics, Reading....");
                         //Toast.makeText(getApplicationContext(),"Found data!",Toast.LENGTH_SHORT).show();
                         foundChar = true;

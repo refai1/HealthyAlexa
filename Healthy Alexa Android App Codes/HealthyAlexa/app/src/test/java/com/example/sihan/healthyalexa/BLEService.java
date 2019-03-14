@@ -49,7 +49,7 @@ public class BLEService extends Service {
                 "com.example.bluetooth.le.EXTRA_DATA";
 
         public final static UUID UUID_HEART_RATE_MEASUREMENT =
-                UUID.fromString(MainActivity.HMSoftChar);
+                UUID.fromString(MainActivity.HexiChar);
 
         // Implements callback methods for GATT events that the app cares about.  For example,
         // connection change and services discovered.
