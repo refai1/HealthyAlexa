@@ -8,8 +8,8 @@
   * Healthy Alexa Wearable Code: FOr the Mbed code used on the Hexiwear for data collection
   * Healthy Alexa Android Code: For the Android application developed to receive and stotre the data from the Hexiwear
   * Matlab Code: For the code ued to post process the data
-  * Hexiwear Bin: FOr the bin files compiled on the Hexiwear
-  * Hexiwear Codes_Initials: For the complete working codes used to verify each of the functionalities (in case you need a different implementation for your project)
+  * Hexiwear Bins: FOr the bin files compiled on the Hexiwear
+  * Hexiwear Codes_initials: For the complete working codes used to verify each of the functionalities (in case you need a different implementation for your project)
 
 Website for the project: 
   <https://hannahojaiji.wixsite.com/ee202ahealthyalexa>
