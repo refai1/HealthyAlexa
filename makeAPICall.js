@@ -2,7 +2,7 @@
 
 const request = require("request-promise");
 
-const url = "http://127.0.0.1";
+const url = "http://1c56a381.ngrok.io";
 
 const uri_dict = {temperature:"command", 
  				  humidity:"humid", 
@@ -11,7 +11,8 @@ const uri_dict = {temperature:"command",
 
 
 function getEntry(dateArg, dataType){
-	return request.get(url+"/"+uri_dict[dataType]+"?"+uri_dic[dataType])
+	console.log(url+"/"+uri_dict[dataType]+"?"+uri_dict[dataType]+"="+dateArg);
+	return request.get(url+"/"+uri_dict[dataType]+"?"+uri_dict[dataType]+"="+dateArg);
 }
 
 
@@ -26,6 +27,7 @@ function your_code(){
 	// .then, promise that when this function returns, do this. 
 	getEntry(date, dtype).then(
 		(response) => {
+			console.log(response)
 			console.log("put the rest of the logic here")
 			// response will be the requested value for the requested date.
 		},
@@ -33,3 +35,5 @@ function your_code(){
 			console.log(error)
 		});
 }
+
+your_code();
