@@ -71,8 +71,9 @@ public class Main2Activity extends AppCompatActivity {
 
     View view;
 
-    TextView showValue;
-    TextView showData;
+    String temp_Inc;
+    //TextView showValue;
+    //TextView showData;
     int counter = 0;
     private String nameChoice;
 
@@ -104,7 +105,7 @@ public class Main2Activity extends AppCompatActivity {
     //Information about board
     public static  String HMSoftAddress = "40:BD:32:94:C0:71";
     public static String HMSoftServ = "0000ffe0-0000-1000-8000-00805f9b34fb";
-    public  static String HMSoftChar = "0000fe01-0000-1000-8000-00805f9b34fb";
+    public  static String HMSoftChar = "0000ffe1-0000-1000-8000-00805f9b34fb";
 
     //Needed after HMSoft is connected
     private BluetoothLeService mBluetoothLeService;
@@ -144,11 +145,11 @@ public class Main2Activity extends AppCompatActivity {
         view = this.getWindow().getDecorView();
         view.setBackgroundResource(R.color.Blue);
 
-        showValue = (TextView) findViewById(R.id.valueCounter);
-        showData = (TextView) findViewById(R.id.data);
+        //showValue = (TextView) findViewById(R.id.valueCounter);
+        //showData = (TextView) findViewById(R.id.data);
 
         //Bluetooth stuff
-        getSupportActionBar().setTitle(R.string.title_devices);
+        getSupportActionBar().setTitle("Healthy Alexa");
         mHandler = new Handler();
 
         // Use this check to determine whether BLE is supported on the device.  Then you can
@@ -189,13 +190,13 @@ public class Main2Activity extends AppCompatActivity {
         graph.getGridLabelRenderer().setNumVerticalLabels(4);
         graph.getViewport().setScrollable(true);
 
-        Viewport viewport2 = graph.getViewport();
-        viewport2.setYAxisBoundsManual(true);
-        viewport2.setMinY(.01);
-        viewport2.setMaxY(1.5);
-        viewport2.setXAxisBoundsManual(true);
-        viewport2.setMaxX(10);
-        viewport2.setMinX(0);
+        Viewport viewport = graph.getViewport();
+        viewport.setYAxisBoundsManual(true);
+        viewport.setMinY(.01);
+        viewport.setMaxY(1.5);
+        viewport.setXAxisBoundsManual(true);
+        viewport.setMaxX(10);
+        viewport.setMinX(0);
 
         startedGraphing = false;
 
@@ -207,7 +208,7 @@ public class Main2Activity extends AppCompatActivity {
         graph2 = (GraphView) findViewById(R.id.graph2);
         //Setup how the graph looks
         series2 = new LineGraphSeries<DataPoint>();
-        series.setColor(Color.WHITE);
+        series2.setColor(Color.WHITE);
         graph2.addSeries(series);
         graph2.getGridLabelRenderer().setHorizontalAxisTitle("Time (s)");
         graph2.getGridLabelRenderer().setVerticalAxisTitle("Oxygenation");
@@ -217,13 +218,13 @@ public class Main2Activity extends AppCompatActivity {
         graph2.getGridLabelRenderer().setNumVerticalLabels(4);
         graph2.getViewport().setScrollable(true);
 
-        Viewport viewport = graph2.getViewport();
-        viewport.setYAxisBoundsManual(true);
-        viewport.setMinY(.01);
-        viewport.setMaxY(1.5);
-        viewport.setXAxisBoundsManual(true);
-        viewport.setMaxX(10);
-        viewport.setMinX(0);
+        Viewport viewport2 = graph2.getViewport();
+        viewport2.setYAxisBoundsManual(true);
+        viewport2.setMinY(.01);
+        viewport2.setMaxY(1.5);
+        viewport2.setXAxisBoundsManual(true);
+        viewport2.setMaxX(10);
+        viewport2.setMinX(0);
 
         startedGraphing2 = false;
 
@@ -340,6 +341,16 @@ public class Main2Activity extends AppCompatActivity {
                  + series.getHighestValueX());
                 //If user scrolls to end == update every new incoming value (TODO: make it user responsive)
                 updateViewportRecent = (maxX == series.getHighestValueX());
+
+            }
+        });
+        graph2.getViewport().setOnXAxisBoundsChangedListener(new OnXAxisBoundsChangedListener() {
+            @Override
+            public void onXAxisBoundsChanged(double minX, double maxX, Reason reason) {
+                Log.i(TAG,"Graph has scrolled!" + minX + " ,max: " + maxX + "\nSeries2Listmax: "
+                        + series2.getHighestValueX());
+                //If user scrolls to end == update every new incoming value (TODO: make it user responsive)
+                updateViewportRecent = (maxX == series2.getHighestValueX());
                 updateViewportRecent2 = updateViewportRecent;
             }
         });
@@ -573,32 +584,14 @@ public class Main2Activity extends AppCompatActivity {
         //REMOVE LAtER
         if(DEBUG_MODE){
             series.appendData(new DataPoint(test_count,test_count / 10.0),updateViewportRecent,500);
-            series2.appendData(new DataPoint(test_count,test_count / 10.0),updateViewportRecent,500);
+            series2.appendData(new DataPoint(test_count,test_count / 10.0),updateViewportRecent2,500);
             test_count++;
             Log.i(TAG,graph.getViewport().getXAxisBoundsStatus().toString());
         }
-        if(counter >= 15){
-            return;
-        }
-        else{
-            counter++;
-        }
-        showValue.setText(Double.toString(intToDouble(counter)));
-        sendData(counter);
 
         //Toast.makeText(getApplicationContext(),String.valueOf(counter),Toast.LENGTH_LONG).show();
     }
-    public void countDE (View v) {
-        if(counter <= 1){
-            return;
-        }
-        else{
-            counter--;
-        }
-        showValue.setText(Double.toString(intToDouble(counter)));
-        sendData(counter);
-        //Toast.makeText(getApplicationContext(),String.valueOf(counter),Toast.LENGTH_LONG).show();
-    }
+
 
     //TESTING on axis bound listener
 
@@ -771,28 +764,64 @@ public class Main2Activity extends AppCompatActivity {
             } else if (BluetoothLeService.ACTION_DATA_AVAILABLE.equals(action)) {
                 //Read current
                 String returnedVal = intent.getStringExtra(BluetoothLeService.EXTRA_DATA);
-                //remove the Ma to convert to an actual usable value
-                double returnedValDouble;
-                showData.setText(returnedVal);
-                if(checkIfValidDouble(returnedVal)){
-                    returnedValDouble = Double.parseDouble(getValidDouble(returnedVal));
-                    if(!startedGraphing){
-                        startedGraphing = true;
-                        startTime = SystemClock.elapsedRealtime(); //Zero the time
+
+//HH
+                String[] st = returnedVal.split("\\n", 2);
+                temp_Inc += st[0];
+                String[] vals = temp_Inc.split(",", 2);
+                /*
+                        In Order of this if correct:
+                        Voltage input, voltage out unfiltered, resistance unfiltered, voltage out
+                        filtered, resistance filtered, frequency applied, expected (should be empty)
+                    */
+               /* if (vals.length >= 2) {
+
+                    Log.i(TAG, "The string is : " + temp_Inc);
+                    String timeStamp = BluetoothApp.getDateString() + ", " + BluetoothApp.getTimeStringWithColons() + ", ";
+
+                    try {
+
+                        outputStream.write(timeStamp.getBytes());
+
+                        outputStream.write(temp_Inc.getBytes());
+
+
+                    } catch (IOException e)
+
+                    {
+
+                        e.printStackTrace();
                     }
-                    double currentX =(SystemClock.elapsedRealtime() - startTime) / 1000.0;
-                    //Log.i(TAG,"Current x: "+Double.toString(currentX));
-                    series.appendData(new DataPoint( currentX,returnedValDouble),updateViewportRecent,500);
-                    series2.appendData(new DataPoint( currentX,returnedValDouble),updateViewportRecent,500);
-                    //Record to file
-                    if(outputStream!=null && isRecording){
-                        //In format of <date>,<time>,<seconds after start>, <Current Value>, <suffix>,\n so it can be read as a csv file
-                        String message = BluetoothApp.getDateString() + "," + BluetoothApp.getTimeStringWithColons() + ","  + "," + returnedValDouble + "," + "\n";
-                        try {
-                            outputStream.write(message.getBytes());
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
+                }else {
+                    temp_Inc += returnedVal;
+                }*/
+
+//HH
+                //remove the Ma to convert to an actual usable value
+                double redDouble;
+                double irDouble;
+                //showData.setText(returnedVal);
+                Log.i(TAG,"HHHHHHHHHHHHHHHHHHHH: "+returnedVal);
+                if(!startedGraphing){
+                    startedGraphing = true;
+                    startTime = SystemClock.elapsedRealtime(); //Zero the time
+                }
+                double currentX =(SystemClock.elapsedRealtime() - startTime) / 1000.0;
+                //Log.i(TAG,"Current x: "+Double.toString(currentX));
+                redDouble = Double.parseDouble(vals[0]);
+                irDouble = Double.parseDouble(vals[1]);
+                series.appendData(new DataPoint( currentX,redDouble),updateViewportRecent,500);
+                series2.appendData(new DataPoint( currentX,irDouble),updateViewportRecent2,500);
+                Log.i(TAG,"HHHHHHHHHHHHHHHHHHHH: "+Double.toString(redDouble));
+
+                //Record to file
+                if(outputStream!=null && isRecording){
+                    //In format of <date>,<time>,<seconds after start>, <Current Value>, <suffix>,\n so it can be read as a csv file
+                    String message = BluetoothApp.getDateString() + "," + BluetoothApp.getTimeStringWithColons() + "," +redDouble +  "," + irDouble + "," + "\n";
+                    try {
+                        outputStream.write(message.getBytes());
+                    } catch (IOException e) {
+                        e.printStackTrace();
                     }
                 }
             }
