@@ -1,79 +1,143 @@
 from PyRRD import *
 import random
 
-def exampleTemp():
-	dataSources = []
-	RRArchives = []
-	
-	delay = 1
-	# create the data sources
-	dataSources.append(createDataSource("temperature", "GAUGE", 600))
-	RRArchives.append(createRRA("LAST", 1, 24))
-	RRArchives.append(createRRA("AVERAGE",10,10))
-
-	ts = int(time.time())
-	
-	while(ts % delay != 0):
-		time.sleep(1)
-		ts = int(time.time())
-
-	createRRD("temperature", ts, dataSources, RRArchives, delay)
-
-	entries = 20
-	for i in range(entries):
-		time.sleep(delay)
-		ts = int(time.time())
-		print("Reading temperature at time", ts2date(ts), "...")
-
-		hr = 80+random.randint(0,10)
-		updateRRD("temperature", (ts, hr))
-		print("Temperature:", hr, "added to rrd")
-		
-
-	result = fetchRRD("temperature", "AVERAGE", ts-entries*delay, ts)
-	finalres = printFetch(result)
-	return finalres
-
 #This function populates the rrd for the last 3 days with temperature readings every 5 minutes.
 # 5 minutes = 300 seconds
 # 1 hour is 12*5 mins = 300*12 = 3600
 # one day is 86400 seconds
-def example2():
+def example2(dataType, days, baseval, rnge):
+	dts = ["temperature", "humidity", "accelerometer", "gyroscope"]
+	timeBack = days*86400
 
-	dataSources = []
-	RRArchives = []
+	if (dataType in dts):		 
+		dataSources = []
+		RRArchives = []
 
-	# create the data sources
-	dataSources.append(createDataSource("temperature", "GAUGE", 600))
-	# averages data every hour for 24 hours. (24 entires of 12-five-minute readings) 
-	RRArchives.append(createRRA("AVERAGE", 12, 24))
-	# averages data every day for 3 days
-	RRArchives.append(createRRA("AVERAGE",12*24,3))
+		# create the data sources
+		dataSources.append(createDataSource(dataType, "GAUGE", 600))
+		# averages data every 6 hours day for variable days
+		RRArchives.append(createRRA("AVERAGE",12*6,days*4))
 
+		
+		ts = int(time.time())
+
+		createRRD(dataType, ts-timeBack, dataSources,RRArchives)
+
+		reading_time = ts-timeBack
+		# 3 days worth of 5 minutes
+		for i in range(288*days):
+			tmp = baseval+random.randint(0,rnge)
+			updateRRD(dataType, (reading_time, tmp))
+			reading_time = reading_time+300
+
+		result = fetchRRD(dataType, "AVERAGE", ts-timeBack, ts)
+		printFetch(result)
+	else:
+		print("error: invalid datatype")
+	return
+
+def time2seconds(time):
+	hrs = int(time.split(":")[0])
+	mins = int(time.split(":")[1])	
+
+	# the minus 2 adjusts time zones
+	seconds = (hrs-2)*3600 + mins*60
+	return seconds
+
+def fetchForPeriod(startdate, enddate, starttime, endtime, dtype):
+	#ts = int(time.time())
+	start = int(date2ts(str2date(startdate)) + time2seconds(starttime))
+	end = int(date2ts(str2date(enddate)) + time2seconds(endtime))
+
+	prevHrSt = start - 3600
+	prvHrEnd = end - 3600
+
+	up = 0
+	percent = 0
+
+	if (dtype == "ppg"):
+		result = fetchRRD(dtype, "MAX", start+1, end-1)
+		temp = processPPGPeriodFetch(result)
+		result = fetchRRD(dtype, "MAX", prevHrSt+1, prvHrEnd-1)
+		temp2 = processPPGPeriodFetch(result)
+		if (temp > temp2):
+			up = 1
+			percent = round((temp - temp2) / temp * 100, 2)
+		elif(temp < temp2):
+			up = -1
+			percent = round((temp2 - temp) / temp2 * 100, 2)
+		else:
+			up = 0
+		return {"temp":str(temp), "up":str(up), "percent":str(percent)}
+		
+	else:
+		result = fetchRRD(dtype,"AVERAGE", start, end)
+		temp = str(processPeriodFetch(result))
 	
+
+	return temp
+
+def fetchForDate(date, dtype):
 	ts = int(time.time())
 
-	createRRD("temperature", ts-259200, dataSources,RRArchives)
+	result = fetchRRD(dtype,"AVERAGE", ts-(24*60*60*10), ts)
+	
+	temp = str(processFetch(result, date))
+	
+	return temp
 
-	reading_time = ts-259200
-	# 3 days worth of 5 minutes
-	for i in range(864):
-		tmp = 90+random.randint(0,10)
-		updateRRD("temperature", (reading_time, tmp))
-		reading_time = reading_time+300
+def processFetch(result, date):
+	res = result.decode("utf-8").strip().split('\n')[2:]
+	searchDate = str2date(date)
+	searchTSmin = date2ts(searchDate)
+	searchTSmax = searchTSmin + 24*60*60
+	found = False
+	vals = []
 
-	result = fetchRRD("temperature", "AVERAGE", ts-259200, ts)
-	printFetch(result)
+	for element in res:
+		pair = element.split(' ')
+		timestamp = pair[0][:-1]
+		if ((float(timestamp) >= searchTSmin) and (float(timestamp) < searchTSmax)):
+			vals.append(round(float(pair[1]),2))
+			found = True
 
-def fetchForDate(date):
-	ts = int(time.time())
+	if (found):
+		temp = round(sum(vals)/len(vals),2)
+	else:
+		temp = "not available"
 
-	result = fetchRRD("temperature","AVERAGE", ts-259200, ts).split("\n")
-	print(result)
-	return result
+	return temp
 
-#def main():
-#	example2()
+def processPeriodFetch(result):
+	res = result.decode("utf-8").strip().split('\n')[2:]
+	vals = []
+	for element in res:
+		pair = element.split(' ')
+		vals.append(round(float(pair[1]), 2))
+
+	temp = round(sum(vals)/len(vals),2)
+
+	return temp
+
+def processPPGPeriodFetch(result):
+	res = result.decode("utf-8").strip().split('\n')[2:]
+	vals = []
+	for element in res:
+		pair = element.split(' ')
+		vals.append(round(float(pair[1]), 2))
+
+	temp = max(vals)
+
+	return temp
+# def main():
+# 	example2()
 
 
-#main()
+# main()
+
+def main():
+
+	mydict = fetchForPeriod("2019-03-15","2019-03-15","20:00","21:00", "ppg")
+
+	print(mydict)
+main()

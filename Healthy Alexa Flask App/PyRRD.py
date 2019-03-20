@@ -57,6 +57,10 @@ def date2ts(date):
 	ts = datetime.datetime.timestamp(date)
 	return ts
 
+def str2date(datestr):
+	date = datetime.datetime.strptime(datestr, "%Y-%m-%d")
+	return date
+
 ###############################################################################
 
 ################################### THE API ###################################
@@ -86,7 +90,7 @@ def updateRRD(name, argTup):
 	if (argTup[1]):
 		value = argTup[1]
 	else:
-		argTup = "U"
+		value = "U"
 
 	# check if update defines time as "now"
 	if (argTup[0]):
@@ -95,10 +99,23 @@ def updateRRD(name, argTup):
 		time = "N"
 
 	string = "rrdtool update "+name+".rrd "+str(time)+":"+str(value)
-
+	#print(time)
 	#return string
 	#print(string)
 	subprocess.run(string.split())
+
+def batchUpdateRRD(name, argArray):
+	string = "rrdtool update "+name+".rrd "
+	count = 1
+	for arg in argArray:
+		# will trust, won't check
+		## Will add 10 at a time
+		if (count%500 == 0):
+			subprocess.run(string.split())
+			string = "rrdtool update "+name+".rrd "
+		else:
+			string = string + str(arg[0])+":"+str(arg[1])+" "
+		count += 1
 
 def fetchRRD(name, cf, start, end, res=None):
 	if (res):
@@ -111,54 +128,3 @@ def fetchRRD(name, cf, start, end, res=None):
 	results = subprocess.run(string.split(), stdout=subprocess.PIPE)
 	return results.stdout
 	
-###############################################################################
-
-#################################### MAIN #####################################
-
-###############################################################################
-
-
-# def main():
-# 	dataSources = []
-# 	RRArchives = []
-
-# 	# ts = 920804400
-# 	# date = ts2date(ts)
-# 	# ts2 = date2ts(date)
-# 	# print(ts2)
-
-# 	#dataSources.append(createDataSource("heartrate", "GAUGE", 600))
-# 	#RRArchives.append(createRRA("AVERAGE",5,10))
-	
-# 	# #createRRD("heartrate", "N", dataSources, RRArchives)
-# 	# updateRRD("heartrate", (None,87))
-# 	# ts = int(time.time())
-
-# 	#fetchRRD("test", "AVERAGE", 920804400, 920809200)
-
-# 	#dataSources.append(createDataSource("speed", "COUNTER", 600))
-# 	#RRArchives.append(createRRA("AVERAGE", 1,24))
-# 	#RRArchives.append(createRRA("AVERAGE", 6,10))
-# 	# for i in range(15):
-# 	# 	updateRRD("test", (920804700+i*300,12345+i*5))
-
-# 	#createRRD("test", 920804400, dataSources, RRArchives)
-
-# 	#subprocess.run("rrdtool create test.rrd --start 920804400 DS:speed:COUNTER:600:U:U RRA:AVERAGE:0.5:1:24 RRA:AVERAGE:0.5:6:10".split())
-	
-# 	# create the data sources
-# 	dataSources.append(createDataSource("heartrate", "GAUGE", 600))
-# 	RRArchives.append(createRRA("LAST", 1, 24))
-
-# 	ts = int(time.time())
-
-# 	createRRD("heartrate", ts-12000, dataSources, RRArchives)
-
-# 	for i in range(20):
-# 		updateRRD("heartrate", (ts-6000+300*i, 80+i))
-
-# 	fetchRRD("heartrate", "LAST", ts-6600, ts+300)
-
-
-
-# main()
