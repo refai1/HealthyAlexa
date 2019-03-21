@@ -10,6 +10,7 @@
   * Matlab Code: For the code ued to post process the data
   * Hexiwear Bins: For the bin files compiled on the Hexiwear
   * Hexiwear Codes_initials: For the complete working codes used to verify each of the functionalities (in case you need a different implementation for your project)
-
+  * AlexaSkill:This is the interaction model and lambda function for the Alexa Skill. 
+  * Healthy Alexa Flask App: This is the gateway for the lambda to interact with the database. It includes an API, all the RRDs, files of data, a script to populate the databases for testing purposes.
 Website for the project: 
   <https://hannahojaiji.wixsite.com/ee202ahealthyalexa>
