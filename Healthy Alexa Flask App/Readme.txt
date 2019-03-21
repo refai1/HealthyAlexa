@@ -1,5 +1,12 @@
 This folder contains the backend that will run on the device connected to the hexiwear. Due to unforseen issues with the Hexiwear's bluetooth, and with the raspberry pi's serial interface, we had to use our own laptops. to host the backend. However it is entirely possible to host the database, backend, and API on a Raspberry Pi.
 
+To install RRDtool on any linux device:
+	- follow these instructions https://oss.oetiker.ch/rrdtool/doc/rrdbuild.en.html
+	- if that doesn't work, navigate to the install directory and move the contents from there to your binaries directory.
+		- this was the case on the raspberry pi
+		cd INSTALL_DIR 
+		sudo mv * /usr/bin
+
 The backend consists of the following:
 	- Flask App (app.py, rrdtest.2, PyRRD.py)
 	- rrdtool databases (*.rrd)
@@ -14,4 +21,3 @@ To run this flask app you will need to install Flask in a python3 (preferably) v
 	- From within the env, "flask run"
 	- "ngrok http 5000"
 	- Populater the rrds. Feel free to change any paramters, such as daysBack (for how many days to store), how often rrdtool should archive your data, add datasources, add archives, or change cosnsolidation functions.
-
