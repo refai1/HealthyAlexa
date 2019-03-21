@@ -21,7 +21,7 @@ To run this on your own AWS lambda instance:
 	- Upload the archive to the aws lambda instance and click "save"
 
 
-- healthyAlexa.JSON
+- interactionModel.JSON
 
 This is the speech model for the alexa skill.
 It consists of a JSON object which highlights the skill's intents and sample utterances.
